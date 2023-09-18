@@ -1,0 +1,17 @@
+---
+- name: Destroy Orb Instance
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: ORB - call instance deletion job
+      include_tasks: driver/destroy_orb_vm.yml
+      vars:
+        vm_name: "orb-mlcl-{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
+      no_log: true
+
+    - name: ORB - remove instance config from disk
+      file:
+        path: "{{ molecule_instance_config }}"
+        state: absent

@@ -1,0 +1,7 @@
+---
+- name: ORB Validate input - vm distro release not allowed
+  assert:
+    that:
+      - "{{ distro.split(':') | count }} == 1"
+    success_msg: "Check distro release - success!"
+    fail_msg: "Check VM Name - vm distro release is not supported by orbstack when we include the name. (Good input - name: test01, distro: centos)"

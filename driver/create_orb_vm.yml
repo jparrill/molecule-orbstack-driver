@@ -1,0 +1,85 @@
+---
+- name: ORB Create - set instance variables
+  set_fact:
+    distro: "{{ item.distro|default('centos:9-stream') }}"
+    arch: "{{ item.arch|default('arm64') }}"
+    reuse: "{{ item.reuse|default(false) }}"
+    ready: false
+
+- name: ORB Create - validating molecule.yml
+  include_tasks: validate.yml
+
+- name: ORB Create - check if the instance already exists
+  shell: "orb info {{ vm_name }}"
+  register: orb_vm
+  failed_when: false
+  changed_when: false
+
+- name: ORB Create - create the instance
+  block:
+    ## The instance exists, but no force or reuse was set. Stopping execution...
+    - name: ORB Create - the instance already exists, stopping...
+      fail:
+        msg: "The instance already exists and reuse were not set or is 'false' in the driver section of the molecule.yml"
+      when: (reuse == false) and (orb_vm.rc == 0) and (not ready)
+
+    - name: ORB Create - the instance already exists, reusing it
+      block:
+        ## The instance exists, reusing it...
+        - name: ORB Create - check if the instance already exists
+          shell: "orb info {{ vm_name }}"
+          register: check
+          failed_when: false
+          changed_when: false
+
+        - name: ORB Create - setting ready
+          set_fact:
+            ready: true
+          when: check.rc == 0
+      when: (reuse == true) and (orb_vm.rc == 0) and (not ready)
+
+    - name: ORB Create - creating instance
+      block:
+        ## The instance does not exists. Creating it...
+        - name: ORB Create - instance
+          command: orb create -a {{ arch }} {{ distro }} {{ vm_name }}
+          register: vm
+          failed_when: vm.rc != 0
+
+        - name: ORB Create - checking instance
+          shell: "orb {{ vm_name }}"
+          register: check
+          failed_when: false
+          changed_when: false
+
+        - name: ORB Create - setting ready
+          set_fact:
+            ready: true
+          when: check.rc == 0
+      when: (orb_vm.rc == 1) and (not ready)
+  when: not ready
+
+- name: ORB Create - checking VM details - Port
+  shell: "orb ssh | grep Port | cut -f 2 -d :"
+  register: orb_vm_port
+  changed_when: false
+
+- name: ORB Create - setting VM details
+  set_fact:
+    address: "localhost"
+    vm_user: "root"
+    port: "{{ orb_vm_port.stdout | replace(' ', '') | int }}"
+    identity_file: "{{ ansible_env.HOME }}/.orbstack/ssh/id_ed25519"
+
+- name: ORB Create - create the basic instance hash
+  set_fact:
+    instance_dict: "{{ instance_dict|default({})|combine({
+      'user':vm_user,
+      'instance':item.name,
+      'address':address,
+      'port':port,
+      'identity_file':identity_file })}}"
+
+- name: ORB Create - add instance to instances dictionary
+  set_fact:
+    instance_conf_dict: "{{ instance_conf_dict|default([]) + [ instance_dict ] }}"

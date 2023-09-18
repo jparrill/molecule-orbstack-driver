@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    skip_handlers: true
+  tasks:
+    - ping:
+    - ping:
+      become: true

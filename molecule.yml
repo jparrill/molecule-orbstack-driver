@@ -1,0 +1,23 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+driver:
+  name: delegated
+# https://docs.orbstack.dev/machines/distros
+platforms:
+  - name: virt-provisioner
+    distro: centos
+    password: "!redhat123"
+    arch: arm64
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    destroy: destroy.yml
+    converge: converge.yml
+  lint:
+    name: ansible-lint
+verifier:
+  name: ansible

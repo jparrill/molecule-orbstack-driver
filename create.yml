@@ -1,0 +1,17 @@
+---
+- name: Create Orb Instance
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tasks:
+    - name: ORB - call instance creation job
+      include_tasks: driver/create_orb_vm.yml
+      vars:
+        vm_name: "orb-mlcl-{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
+      no_log: true
+
+    - name: ORB - dump instance config to disk
+      copy:
+        content: "{{ instance_conf_dict }}"
+        dest: "{{ molecule_instance_config }}"

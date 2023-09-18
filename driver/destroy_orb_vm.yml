@@ -1,0 +1,19 @@
+---
+- name: ORB Create - set instance variables
+  set_fact:
+    distro: "{{ item.distro|default('centos:9-stream') }}"
+    arch: "{{ item.arch|default('arm64') }}"
+    reuse: "{{ item.reuse|default(false) }}"
+    ready: false
+
+- name: ORB Create - validating molecule.yml
+  include_tasks: validate.yml
+
+- name: ORB Create - check if the instance already exists
+  shell: "orb info {{ vm_name }}"
+  register: orb_vm
+  failed_when: false
+  changed_when: false
+
+- name: ORB Destroy - deleting instance
+  shell: "orb delete {{ vm_name }} --force"
